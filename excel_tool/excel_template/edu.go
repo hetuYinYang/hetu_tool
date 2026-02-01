@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mhh1987/hetu_tool/excel_tool"
-	"github.com/mhh1987/hetu_tool/time_format"
+	"github.com/hetuYinYang/hetu_tool/excel_tool"
+	"github.com/hetuYinYang/hetu_tool/time_format"
 	"github.com/pkg/errors"
 	"github.com/xuri/excelize/v2"
 )

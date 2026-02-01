@@ -1,4 +1,4 @@
-module github.com/mhh1987/hetu_tool
+module github.com/hetuYinYang/hetu_tool
 
 go 1.23.0
 
