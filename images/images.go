@@ -377,3 +377,17 @@ func GetImageDimension(imageData []byte) *ImageDimension {
 		Height: int64(tempImage.Bounds().Dy()),
 	}
 }
+
+func CheckImage(imageData image.Image) bool {
+	if imageData == nil {
+		return false
+	}
+	return true
+}
+
+func CheckUrl(url string) bool {
+	if url == "" {
+		return false
+	}
+	return true
+}
