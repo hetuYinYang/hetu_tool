@@ -1,6 +1,7 @@
 package lists
 
 import (
+	"errors"
 	"slices"
 )
 
@@ -169,4 +170,38 @@ func FindMax[T int8 | int16 | int | int32 | int64 | float32 | float64](dataList 
 		}
 	}
 	return result
+}
+
+func ProcessTree[T any](nodes []T, fc func(n T, parent T, parentId, rootId int64, depth int) ([]T, int64, int64, error), limit int) error {
+
+	for _, node := range nodes {
+		var t T
+		err := process(node, t, fc, 0, 0, 0, limit)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func process[T any](node T, parent T, fc func(n T, parent T, parentId, rootId int64, depth int) ([]T, int64, int64, error), parentId, rootId int64, depth, limit int) error {
+
+	depth += 1
+	if depth > limit { // 防止死循环
+		return errors.New("tree depth limit exceeded")
+	}
+	children, parentId, rootId, err := fc(node, parent, parentId, rootId, depth)
+	if err != nil {
+		return err
+	}
+	if len(children) == 0 {
+		return nil
+	}
+	for _, child := range children {
+		err = process[T](child, node, fc, parentId, rootId, depth, limit)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
