@@ -207,6 +207,58 @@ func WriteSheetsToExcelByte(sheets []*SheetData) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// WriteSheetsToExcelNoDefaultSheet 写入excel到字节流，备注：删除默认sheet
+// sheets: 工作表数据
+// 返回字节流
+func WriteSheetsToExcelNoDefaultSheet(sheets []*SheetData) ([]byte, error) {
+
+	f := excelize.NewFile()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+
+	for _, sheet := range sheets {
+		// Create a new sheet.
+		index, err := f.NewSheet(sheet.SheetName)
+		if err != nil {
+			fmt.Println(err)
+			return nil, err
+		}
+
+		for idx, row := range sheet.Data {
+			cell, err := excelize.CoordinatesToCellName(1, idx+1)
+			if err != nil {
+				fmt.Println(err)
+				break
+			}
+			err = f.SetSheetRow(sheet.SheetName, cell, &row)
+			if err != nil {
+				return nil, err
+			}
+
+		}
+		f.SetActiveSheet(index)
+	}
+	if len(sheets) > 0 && len(f.GetSheetList()) > 1 {
+		// 获取默认工作表的名称
+		defaultSheetName := f.GetSheetName(0)
+		if defaultSheetName == "Sheet1" {
+			// 删除默认工作表
+			if err := f.DeleteSheet(defaultSheetName); err != nil {
+				return nil, errors.WithStack(err)
+			}
+		}
+	}
+	var buf bytes.Buffer
+	err := f.Write(&buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
 type ExcelBatchSheet struct {
 	SheetName string          // 工作表名
 	Data      [][]interface{} // 要写入的数据
