@@ -391,3 +391,15 @@ func CheckUrl(url string) bool {
 	}
 	return true
 }
+
+func CompressImage(key string) string {
+
+	if key == "" {
+		return ""
+	}
+	if strings.Contains(key, "?x-tos-process") {
+		return fmt.Sprintf("%s/%s", key, "format,heic")
+	} else {
+		return fmt.Sprintf("%s?x-tos-process=image/format,heic", key)
+	}
+}
