@@ -21,7 +21,7 @@ import (
 
 var JoinImageTaskTimeout = 3 * time.Minute
 
-const ImageMergeQuality = 100
+const ImageMergeQuality = 80
 
 // CropImage 切图，key为目标图片的tos key，rect为想要切取的区域
 func CropImage(key string, rect *Rect) string {
@@ -152,8 +152,8 @@ func joinImageTask(joinImageItems []*JoinImageItem) ([]byte, error) {
 	}
 	// 保存图像
 	buf := bytes.NewBuffer([]byte{})
-	err := png.Encode(buf, mergedImg)
-	//err := jpeg.Encode(buf, mergedImg, &jpeg.Options{Quality: ImageMergeQuality})
+	//err := png.Encode(buf, mergedImg)
+	err := jpeg.Encode(buf, mergedImg, &jpeg.Options{Quality: ImageMergeQuality})
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("【图像工具类-图像拼接】图像编码[Encode]出错，错误信息: %v", errors.WithStack(err)))
 	}
