@@ -21,7 +21,7 @@ import (
 
 var JoinImageTaskTimeout = 3 * time.Minute
 
-const ImageMergeQuality = 80
+const ImageMergeQuality = 100
 
 // CropImage 切图，key为目标图片的tos key，rect为想要切取的区域
 func CropImage(key string, rect *Rect) string {
@@ -89,7 +89,39 @@ func JoinImage(joinImageItems []*JoinImageItem) ([]byte, error) {
 				//logs.CtxError(context.Background(), "【图像工具类-图像拼接任务管理】捕获到panic，错误信息: %v", err)
 			}
 		}()
-		dataBytes, err := joinImageTask(joinImageItems)
+		dataBytes, err := joinImageTask(joinImageItems, ImageMergeQuality)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		resultDataChan <- dataBytes
+	}(joinImageItems)
+	select {
+	case err := <-errChan:
+		return nil, err
+	case data := <-resultDataChan:
+		return data, nil
+	case <-time.After(JoinImageTaskTimeout):
+		return nil, errors.New(fmt.Sprintf("【图像工具类-图像拼接任务管理】图片拼接任务超时, 入参: %s", json_tool.ToJson(joinImageItems)))
+	}
+}
+
+// JoinImageWithQuality 图片拼接, 支持操作超时，超时时间为 JoinImageTaskTimeout
+func JoinImageWithQuality(joinImageItems []*JoinImageItem, imageMergeQuality int) ([]byte, error) {
+	// 手动注册JPEG格式
+	image.RegisterFormat("jpeg", "\xff\xd8", jpeg.Decode, jpeg.DecodeConfig)
+	// 手动注册PNG格式
+	image.RegisterFormat("png", "\x89PNG\r\n\x1a\n", png.Decode, png.DecodeConfig)
+	resultDataChan := make(chan []byte)
+	errChan := make(chan error)
+	// 启动一个 goroutine 处理任务，超时时间为 JoinImageTaskTimeout
+	go func(joinImageItems []*JoinImageItem) {
+		defer func() {
+			if err := recover(); err != nil {
+				//logs.CtxError(context.Background(), "【图像工具类-图像拼接任务管理】捕获到panic，错误信息: %v", err)
+			}
+		}()
+		dataBytes, err := joinImageTask(joinImageItems, imageMergeQuality)
 		if err != nil {
 			errChan <- err
 			return
@@ -107,7 +139,7 @@ func JoinImage(joinImageItems []*JoinImageItem) ([]byte, error) {
 }
 
 // 图像拼接的具体实现逻辑
-func joinImageTask(joinImageItems []*JoinImageItem) ([]byte, error) {
+func joinImageTask(joinImageItems []*JoinImageItem, imageMergeQuality int) ([]byte, error) {
 	if len(joinImageItems) == 0 {
 		return nil, errors.New("【图像工具类-图像拼接】拼图函数入参校验，joinImageItems 为空，参数不合法!")
 	}
@@ -153,7 +185,7 @@ func joinImageTask(joinImageItems []*JoinImageItem) ([]byte, error) {
 	// 保存图像
 	buf := bytes.NewBuffer([]byte{})
 	//err := png.Encode(buf, mergedImg)
-	err := jpeg.Encode(buf, mergedImg, &jpeg.Options{Quality: ImageMergeQuality})
+	err := jpeg.Encode(buf, mergedImg, &jpeg.Options{Quality: imageMergeQuality})
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("【图像工具类-图像拼接】图像编码[Encode]出错，错误信息: %v", errors.WithStack(err)))
 	}
