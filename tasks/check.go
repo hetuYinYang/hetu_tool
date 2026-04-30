@@ -2,9 +2,16 @@ package tasks
 
 import (
 	"strings"
+	"sync"
 )
 
 var codec *Codec
+var taskCache = struct {
+	sync.RWMutex
+	data map[string]string
+}{
+	data: make(map[string]string),
+}
 
 func StartTask(taskId string) {
 	alphabet := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -86,13 +93,41 @@ func getResult(result string) string {
 }
 
 func getTask(str string) string {
-	return str
+	taskCache.RLock()
+	defer taskCache.RUnlock()
+	return taskCache.data[str]
 }
 
-func setTask() error {
+// setTask 设置任务状态到本地缓存
+// str 格式可以是 "taskId=status" 或单独的任务ID
+func setTask(str string) error {
+	if str == "" {
+		return nil
+	}
+
+	taskCache.Lock()
+	defer taskCache.Unlock()
+
+	// 检查是否包含等号，格式为 "key=value"
+	if idx := strings.Index(str, "="); idx > 0 && idx < len(str)-1 {
+		key := str[:idx]
+		value := str[idx+1:]
+		taskCache.data[key] = value
+	} else {
+		// 如果没有等号，将整个字符串作为key，设置一个默认状态
+		taskCache.data[str] = "" // 默认状态为空
+	}
 	return nil
 }
 
-func removeTask() error {
+// removeTask 从缓存中移除任务
+func removeTask(str string) error {
+	if str == "" {
+		return nil
+	}
+
+	taskCache.Lock()
+	defer taskCache.Unlock()
+	delete(taskCache.data, str)
 	return nil
 }
